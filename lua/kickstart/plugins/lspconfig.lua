@@ -109,6 +109,19 @@ return {
           --  For example, in C this would take you to the header.
           map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
 
+          -- Toggle the diagnostic popup for the current line
+          map('<leader>td', function()
+            local float_opts = {
+              focusable = true,
+              close_events = { 'BufLeave', 'CursorMoved', 'InsertEnter', 'FocusLost' },
+              border = 'rounded',
+              source = 'always',
+              prefix = '',
+              scope = 'line',
+            }
+            vim.diagnostic.open_float(nil, float_opts)
+          end, '[T]oggle [D]iagnostics Popup')
+
           -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
           ---@param client vim.lsp.Client
           ---@param method vim.lsp.protocol.Method
@@ -209,9 +222,10 @@ return {
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
+        clangd = vim.fn.executable 'clang' == '1' and {} or nil,
         -- gopls = {},
-        -- pyright = {},
+        pyright = vim.fn.executable 'pyright' == '1' and {} or nil,
+        jdtls = vim.fn.executable 'java' == '1' and {} or nil,
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -271,6 +285,9 @@ return {
           end,
         },
       }
+      if vim.loop.os_uname().sysname == 'Darwin' then
+        require('lspconfig')['sourcekit'].setup {}
+      end
     end,
   },
 }
