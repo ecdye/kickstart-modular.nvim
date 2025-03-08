@@ -61,6 +61,14 @@ return {
         --   },
         -- },
         -- pickers = {}
+        defaults = {
+          layout_config = {
+            horizontal = {
+              preview_width = 0.65,
+            },
+          },
+          path_display = { 'smart' },
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -84,6 +92,10 @@ return {
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
       vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+
+      -- Git telescope functions
+      vim.keymap.set('n', '<leader>gf', builtin.git_files, { desc = '[G]it repo [F]iles' })
+      vim.keymap.set('n', '<leader>gs', builtin.git_status, { desc = '[G]it repo [S]tatus' })
 
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
