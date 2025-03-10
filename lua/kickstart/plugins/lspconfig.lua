@@ -285,7 +285,9 @@ return {
         },
       }
       if vim.loop.os_uname().sysname == 'Darwin' then
-        require('lspconfig')['sourcekit'].setup {}
+        require('lspconfig')['sourcekit'].setup {
+          filetypes = { 'swift', 'objective-c', 'objective-cpp' },
+        }
       end
     end,
   },
