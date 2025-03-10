@@ -68,7 +68,7 @@ return {
               preview_width = 0.65,
             },
           },
-          path_display = { 'smart' },
+          path_display = { 'truncate' },
         },
         extensions = {
           ['ui-select'] = {
