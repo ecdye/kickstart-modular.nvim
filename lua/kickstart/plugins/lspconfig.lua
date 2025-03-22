@@ -223,7 +223,7 @@ return {
       local servers = {
         clangd = vim.fn.executable 'clang' == '1' and {} or nil,
         -- gopls = {},
-        pyright = vim.fn.executable 'pyright' == '1' and {} or nil,
+        pyright = vim.fn.executable 'python' == '1' and {} or nil,
         jdtls = vim.fn.executable 'java' == '1' and {} or nil,
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
