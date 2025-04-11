@@ -211,6 +211,28 @@ return {
       --  So, we create new capabilities with blink.cmp, and then broadcast that to the servers.
       local capabilities = require('blink.cmp').get_lsp_capabilities()
 
+      -- Dynamically determine the python interperter to use for hacky venv support
+      local function get_python_path()
+        -- Try Poetry
+        local poet = vim.fn.system 'poetry env info -p'
+        if vim.v.shell_error == 0 then
+          local venv_path = vim.fn.trim(poet)
+          local python_path = venv_path .. '/bin/python'
+          if vim.fn.executable(python_path) == 1 then
+            return python_path
+          end
+        end
+
+        -- Try local .venv
+        if vim.fn.executable '.venv/bin/python' == 1 then
+          return '.venv/bin/python'
+        end
+
+        -- Fallback to system python
+        return 'python'
+      end
+      local python_path = get_python_path()
+
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
       --
@@ -221,10 +243,16 @@ return {
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        clangd = vim.fn.executable 'clang' == '1' and {} or nil,
+        clangd = vim.fn.executable 'clang' == 1 and {} or nil,
         -- gopls = {},
-        pyright = vim.fn.executable 'python' == '1' and {} or nil,
-        jdtls = vim.fn.executable 'java' == '1' and {} or nil,
+        pyright = vim.fn.executable(python_path) == 1 and {
+          settings = {
+            python = {
+              pythonPath = python_path,
+            },
+          },
+        } or nil,
+        jdtls = vim.fn.executable 'java' == 1 and {} or nil,
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
