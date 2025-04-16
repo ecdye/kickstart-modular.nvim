@@ -96,6 +96,7 @@ return {
       -- Git telescope functions
       vim.keymap.set('n', '<leader>gf', builtin.git_files, { desc = '[G]it repo [F]iles' })
       vim.keymap.set('n', '<leader>gs', builtin.git_status, { desc = '[G]it repo [S]tatus' })
+      vim.keymap.set('n', '<leader>gb', builtin.git_branches, { desc = '[G]it repo [B]ranches' })
 
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
