@@ -20,6 +20,7 @@ vim.opt.showmode = false
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
 vim.schedule(function()
+  vim.g.clipboard = 'osc52'
   vim.opt.clipboard = 'unnamedplus'
 end)
 
