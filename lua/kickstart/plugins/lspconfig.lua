@@ -229,7 +229,11 @@ return {
         end
 
         -- Fallback to system python
-        return 'python'
+        if vim.loop.os_uname().sysname == 'Darwin' then
+          return 'python3'
+        else
+          return 'python'
+        end
       end
       local python_path = get_python_path()
 
