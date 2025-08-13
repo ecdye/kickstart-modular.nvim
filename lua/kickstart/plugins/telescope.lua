@@ -68,6 +68,43 @@ return {
             },
           },
           path_display = { 'truncate' },
+          preview = {
+            mime_hook = function(filepath, bufnr, opts)
+              local image_extensions = { 'png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif' }
+              local ext = filepath:match '^.+%.(.+)$'
+              if ext then
+                ext = ext:lower()
+              end
+
+              local is_image = ext and vim.tbl_contains(image_extensions, ext)
+
+              if is_image then
+                local term = vim.api.nvim_open_term(bufnr, {})
+
+                local function send_output(_, data, _)
+                  for _, d in ipairs(data) do
+                    vim.api.nvim_chan_send(term, d .. '\r\n')
+                  end
+                end
+
+                -- Get preview window dimensions in cells
+                local winid = opts.winid or vim.api.nvim_get_current_win()
+                local width = vim.api.nvim_win_get_width(winid)
+
+                -- Start icat with calculated window size
+                vim.fn.jobstart({
+                  'chafa',
+                  '--size=' .. width .. 'x',
+                  filepath,
+                }, {
+                  on_stdout = send_output,
+                  stdout_buffered = true,
+                })
+              else
+                require('telescope.previewers.utils').set_preview_message(bufnr, opts.winid, 'Binary cannot be previewed')
+              end
+            end,
+          },
         },
         extensions = {
           ['ui-select'] = {
