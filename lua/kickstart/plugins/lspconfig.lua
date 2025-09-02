@@ -212,30 +212,42 @@ return {
       local capabilities = require('blink.cmp').get_lsp_capabilities()
 
       -- Dynamically determine the python interperter to use for hacky venv support
-      local function get_python_path()
-        -- Try Poetry
-        local poet = vim.fn.system 'poetry env info -p'
-        if vim.v.shell_error == 0 then
-          local venv_path = vim.fn.trim(poet)
-          local python_path = venv_path .. '/bin/python'
-          if vim.fn.executable(python_path) == 1 then
-            return python_path
-          end
-        end
+      local python = vim.loop.os_uname().sysname == 'Darwin' and 'python3' or 'python'
+      if vim.fn.executable(python) == 1 then
+        require('lspconfig').pyright.setup {
+          on_attach = function(client, bufnr)
+            local function get_python_path(workspace)
+              -- Try Poetry
+              local poet = vim.fn.system 'poetry env info -p'
+              if vim.v.shell_error == 0 then
+                local venv_path = vim.fn.trim(poet)
+                local python_path = venv_path .. '/bin/python'
+                if vim.fn.executable(python_path) == 1 then
+                  return python_path
+                end
+              end
 
-        -- Try local .venv
-        if vim.fn.executable '.venv/bin/python' == 1 then
-          return '.venv/bin/python'
-        end
+              -- Try local .venv
+              local venv = workspace .. '/.venv/bin/python'
+              if vim.fn.executable(venv) == 1 then
+                return venv
+              end
 
-        -- Fallback to system python
-        if vim.loop.os_uname().sysname == 'Darwin' then
-          return 'python3'
-        else
-          return 'python'
-        end
+              -- Fallback to system python
+              if vim.loop.os_uname().sysname == 'Darwin' then
+                return 'python3'
+              else
+                return 'python'
+              end
+            end
+            local python_path = get_python_path(vim.fn.getcwd(vim.api.nvim_get_current_win(), bufnr))
+            -- Update pythonPath dynamically for this workspace
+            client.config.settings.python = client.config.settings.python or {}
+            client.config.settings.python.pythonPath = python_path
+            client.notify('workspace/didChangeConfiguration', { settings = client.config.settings })
+          end,
+        }
       end
-      local python_path = get_python_path()
 
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
@@ -249,13 +261,7 @@ return {
       local servers = {
         clangd = vim.fn.executable 'clang' == 1 and {} or nil,
         -- gopls = {},
-        pyright = vim.fn.executable(python_path) == 1 and {
-          settings = {
-            python = {
-              pythonPath = python_path,
-            },
-          },
-        } or nil,
+        pyright = vim.fn.executable(python) == 1 and {} or nil,
         jdtls = vim.fn.executable 'java' == 1 and {} or nil,
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
