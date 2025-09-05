@@ -65,6 +65,7 @@ require('lazy').setup({
   -- { import = 'custom.plugins' },
   require 'custom.plugins.vim-fugitive',
   require 'custom.plugins.vim_tmux_navigator',
+  require 'custom.plugins.typescript-tools',
   --
   -- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
   -- Or use telescope!
