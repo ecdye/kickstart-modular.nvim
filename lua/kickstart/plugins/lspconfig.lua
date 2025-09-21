@@ -214,8 +214,8 @@ return {
       -- Dynamically determine the python interperter to use for hacky venv support
       local python = vim.loop.os_uname().sysname == 'Darwin' and 'python3' or 'python'
       if vim.fn.executable(python) == 1 then
-        require('lspconfig').pyright.setup {
-          on_attach = function(client, bufnr)
+        vim.lsp.config('pyright', {
+          on_attach = function(client, _)
             local function get_python_path(workspace)
               -- Try Poetry
               local poet = vim.fn.system 'poetry env info -p'
@@ -240,13 +240,13 @@ return {
                 return 'python'
               end
             end
-            local python_path = get_python_path(vim.fn.getcwd(vim.api.nvim_get_current_win(), bufnr))
+            local python_path = get_python_path(vim.fn.getcwd(vim.api.nvim_get_current_win(), 0))
             -- Update pythonPath dynamically for this workspace
             client.config.settings.python = client.config.settings.python or {}
             client.config.settings.python.pythonPath = python_path
             client.notify('workspace/didChangeConfiguration', { settings = client.config.settings })
           end,
-        }
+        })
       end
 
       -- Enable the following language servers
@@ -318,14 +318,14 @@ return {
             -- by the server configuration above. Useful when disabling
             -- certain features of an LSP (for example, turning off formatting for ts_ls)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
+            vim.lsp.config(server_name, server)
           end,
         },
       }
       if vim.loop.os_uname().sysname == 'Darwin' then
-        require('lspconfig')['sourcekit'].setup {
+        vim.lsp.config('sourcekit', {
           filetypes = { 'swift', 'objective-c', 'objective-cpp' },
-        }
+        })
       end
     end,
   },

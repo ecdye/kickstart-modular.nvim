@@ -37,6 +37,10 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
 -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
+vim.keymap.set('n', '<leader>ev', ':Vex<Cr>', { desc = 'Open file explorer in vertical split' })
+vim.keymap.set('n', '<leader>eh', ':Hex<Cr>', { desc = 'Open file explorer in horizontal split' })
+vim.keymap.set('n', '<leader>ee', ':Exp<Cr>', { desc = 'Open file explorer in buffer' })
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
