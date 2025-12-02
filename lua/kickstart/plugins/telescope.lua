@@ -5,6 +5,8 @@
 --
 -- Use the `dependencies` key to specify the dependencies of a particular plugin
 
+local previews = false
+
 return {
   { -- Fuzzy Finder (files, lsp, etc)
     'nvim-telescope/telescope.nvim',
@@ -28,6 +30,19 @@ return {
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      {
+        '3rd/image.nvim',
+        build = false, -- so that it doesn't build the rock https://github.com/3rd/image.nvim/issues/91#issuecomment-2453430239
+        opts = {
+          processor = 'magick_cli',
+          integrations = {
+            markdown = {
+              only_render_image_at_cursor = true, -- defaults to false
+              only_render_image_at_cursor_mode = 'popup', -- "popup" or "inline", defaults to "popup"
+            },
+          },
+        },
+      },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -51,6 +66,40 @@ return {
 
       -- [[ Configure Telescope ]]
       -- See `:help telescope` and `:help telescope.setup()`
+      local image = require 'image'
+      vim.api.nvim_create_autocmd('User', {
+        pattern = 'TelescopePreviewerLoaded',
+        callback = function(args)
+          local winid = vim.api.nvim_get_current_win()
+          -- clear previous image if any
+          if previews then
+            image.clear()
+          end
+          local buf = args.buf
+          local filepath = args.data.bufname
+          local image_extensions = { 'png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif' }
+          local ext = filepath:match '^.+%.(.+)$'
+          if ext then
+            ext = ext:lower()
+          end
+          local is_image = ext and vim.tbl_contains(image_extensions, ext)
+
+          if is_image then
+            -- Render new image
+            local width, height = vim.api.nvim_win_get_width(winid), vim.api.nvim_win_get_height(winid)
+            local pre = image.from_file(filepath, {
+              window = winid,
+              buffer = buf,
+              width = width,
+              height = height,
+            })
+            if pre and pre.render then
+              pre:render()
+              previews = true
+            end
+          end
+        end,
+      })
       require('telescope').setup {
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
@@ -71,38 +120,17 @@ return {
           path_display = { 'truncate' },
           preview = {
             mime_hook = function(filepath, bufnr, opts)
+              local winid = vim.api.nvim_get_current_win()
               local image_extensions = { 'png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif' }
               local ext = filepath:match '^.+%.(.+)$'
               if ext then
                 ext = ext:lower()
               end
-
               local is_image = ext and vim.tbl_contains(image_extensions, ext)
-
-              if is_image then
-                local term = vim.api.nvim_open_term(bufnr, {})
-
-                local function send_output(_, data, _)
-                  for _, d in ipairs(data) do
-                    vim.api.nvim_chan_send(term, d .. '\r\n')
-                  end
-                end
-
-                -- Get preview window dimensions in cells
-                local winid = opts.winid or vim.api.nvim_get_current_win()
-                local width = vim.api.nvim_win_get_width(winid)
-
-                -- Start icat with calculated window size
-                vim.fn.jobstart({
-                  'chafa',
-                  '--size=' .. width .. 'x',
-                  filepath,
-                }, {
-                  on_stdout = send_output,
-                  stdout_buffered = true,
-                })
-              else
-                require('telescope.previewers.utils').set_preview_message(bufnr, opts.winid, 'Binary cannot be previewed')
+              if not is_image then
+                local previewers = require 'telescope.previewers.utils'
+                previewers.set_preview_message(bufnr, winid, 'Binary cannot be previewed', '/')
+                return
               end
             end,
           },
