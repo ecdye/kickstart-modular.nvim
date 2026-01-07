@@ -183,6 +183,12 @@ return {
         },
       }
 
+      vim.lsp.handlers['textDocument/hover'] = function(_, result, ctx, config)
+        config = config or {}
+        config.border = config.border or 'rounded'
+        return vim.lsp.handlers.hover(_, result, ctx, config)
+      end
+
       -- LSP servers and clients are able to communicate to each other what features they support.
       --  By default, Neovim doesn't support everything that is in the LSP specification.
       --  When you add blink.cmp, luasnip, etc. Neovim now has *more* capabilities.
