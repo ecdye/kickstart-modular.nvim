@@ -5,16 +5,6 @@
 --
 -- Use the `dependencies` key to specify the dependencies of a particular plugin
 
-local previews = false
-local is_image_file = function(filepath)
-  local image_extensions = { 'png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'ico', 'avif' }
-  local ext = filepath:match '^.+%.(.+)$'
-  if ext then
-    ext = ext:lower()
-  end
-  return ext and vim.tbl_contains(image_extensions, ext)
-end
-
 return {
   { -- Fuzzy Finder (files, lsp, etc)
     'nvim-telescope/telescope.nvim',
@@ -38,19 +28,6 @@ return {
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
-      {
-        '3rd/image.nvim',
-        build = false, -- so that it doesn't build the rock https://github.com/3rd/image.nvim/issues/91#issuecomment-2453430239
-        opts = {
-          processor = 'magick_cli',
-          integrations = {
-            markdown = {
-              only_render_image_at_cursor = true, -- defaults to false
-              only_render_image_at_cursor_mode = 'popup', -- "popup" or "inline", defaults to "popup"
-            },
-          },
-        },
-      },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -74,50 +51,6 @@ return {
 
       -- [[ Configure Telescope ]]
       -- See `:help telescope` and `:help telescope.setup()`
-      local image = require 'image'
-      local preview_image = function(bufnr, filepath, winid)
-        if not winid then
-          for _, win in ipairs(vim.api.nvim_list_wins()) do
-            if vim.api.nvim_win_get_buf(win) == bufnr then
-              winid = win
-            end
-          end
-        end
-        if previews then
-          image.clear()
-          previews = false
-        end
-
-        local is_image = is_image_file(filepath)
-        if is_image and vim.uv.fs_stat(filepath) ~= nil then
-          -- Render new image
-          local width, height = vim.api.nvim_win_get_width(winid), vim.api.nvim_win_get_height(winid)
-          local pre = image.from_file(filepath, {
-            window = winid,
-            buffer = bufnr,
-            width = width,
-            height = height,
-          })
-          if pre and pre.render then
-            pre:render()
-            previews = true
-          end
-        end
-      end
-
-      vim.api.nvim_create_autocmd('User', {
-        pattern = 'TelescopePreviewerLoaded',
-        callback = function(args)
-          if previews then
-            image.clear()
-            previews = false
-          end
-          local filepath = args.data.bufname
-          local bufnr = args.buf
-          preview_image(bufnr, filepath, nil)
-        end,
-      })
-
       require('telescope').setup {
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
@@ -136,17 +69,6 @@ return {
           },
           file_ignore_patterns = { 'node_modules' },
           path_display = { 'truncate' },
-          preview = {
-            mime_hook = function(filepath, bufnr, opts)
-              local winid = opts.winid
-              local is_image = is_image_file(filepath)
-              if not is_image then
-                local previewers = require 'telescope.previewers.utils'
-                previewers.set_preview_message(bufnr, winid, 'Binary cannot be previewed', '/')
-                return
-              end
-            end,
-          },
         },
         extensions = {
           ['ui-select'] = {
