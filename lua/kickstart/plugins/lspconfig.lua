@@ -1,18 +1,6 @@
 -- LSP Plugins
 return {
   {
-    -- `lazydev` configures Lua LSP for your Neovim config, runtime and plugins
-    -- used for completion, annotations and signatures of Neovim apis
-    'folke/lazydev.nvim',
-    ft = 'lua',
-    opts = {
-      library = {
-        -- Load luvit types when the `vim.uv` word is found
-        { path = '${3rd}/luv/library', words = { 'vim%.uv' } },
-      },
-    },
-  },
-  {
     -- Main LSP Configuration
     'neovim/nvim-lspconfig',
     dependencies = {
@@ -128,7 +116,7 @@ return {
           --
           -- When you move your cursor, the highlights will be cleared (the second autocommand).
           local client = vim.lsp.get_client_by_id(event.data.client_id)
-          if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight, event.buf) then
+          if client and client:supports_method('textDocument/documentHighlight', event.buf) then
             local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
             vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
               buffer = event.buf,
@@ -155,10 +143,8 @@ return {
           -- code, if the language server you are using supports them
           --
           -- This may be unwanted, since they displace some of your code
-          if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf) then
-            map('<leader>th', function()
-              vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
-            end, '[T]oggle Inlay [H]ints')
+          if client and client:supports_method('textDocument/inlayHint', event.buf) then
+            map('<leader>th', function() vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf }) end, '[T]oggle Inlay [H]ints')
           end
         end,
       })
@@ -166,28 +152,18 @@ return {
       -- Diagnostic Config
       -- See :help vim.diagnostic.Opts
       vim.diagnostic.config {
+        update_in_insert = false,
         severity_sort = true,
         float = { border = 'rounded', source = 'if_many' },
         underline = { severity = vim.diagnostic.severity.ERROR },
-        signs = vim.g.have_nerd_font and {
-          text = {
-            [vim.diagnostic.severity.ERROR] = '󰅚 ',
-            [vim.diagnostic.severity.WARN] = '󰀪 ',
-            [vim.diagnostic.severity.INFO] = '󰋽 ',
-            [vim.diagnostic.severity.HINT] = '󰌶 ',
-          },
-        } or {},
-        virtual_text = {
-          source = 'if_many',
-          spacing = 2,
-        },
-      }
 
-      vim.lsp.handlers['textDocument/hover'] = function(_, result, ctx, config)
-        config = config or {}
-        config.border = config.border or 'rounded'
-        return vim.lsp.handlers.hover(_, result, ctx, config)
-      end
+        -- Can switch between these as you prefer
+        virtual_text = true, -- Text shows up at the end of the line
+        virtual_lines = false, -- Teest shows up underneath the line, with virtual lines
+
+        -- Auto open the float, so you can easily read the errors when jumping with `[d` and `]d`
+        jump = { float = true },
+      }
 
       -- LSP servers and clients are able to communicate to each other what features they support.
       --  By default, Neovim doesn't support everything that is in the LSP specification.
@@ -212,16 +188,12 @@ return {
               if vim.v.shell_error == 0 then
                 local venv_path = vim.fn.trim(poet)
                 local python_path = venv_path .. '/bin/python'
-                if vim.fn.executable(python_path) == 1 then
-                  return python_path
-                end
+                if vim.fn.executable(python_path) == 1 then return python_path end
               end
 
               -- Try local .venv
               local venv = workspace .. '/.venv/bin/python'
-              if vim.fn.executable(venv) == 1 then
-                return venv
-              end
+              if vim.fn.executable(venv) == 1 then return venv end
 
               -- Fallback to system python
               if vim.loop.os_uname().sysname == 'Darwin' then
@@ -250,8 +222,6 @@ return {
       -- Both these tables have an identical structure of language server names as keys and
       -- a table of language server configuration as values.
       ---@class LspServersConfig
-      ---@field mason table<string, vim.lsp.Config | nil>
-      ---@field others table<string, vim.lsp.Config | nil>
       local servers = {
         --  Add any additional override configuration in the following tables. Available keys are:
         --  - cmd (table): Override the default command used to start the server
@@ -272,22 +242,6 @@ return {
           --
           -- But for many setups, the LSP (`ts_ls`) will work just fine
           -- ts_ls = {},
-          --
-
-          lua_ls = {
-            -- cmd = { ... },
-            -- filetypes = { ... },
-            -- capabilities = {},
-            settings = {
-              Lua = {
-                completion = {
-                  callSnippet = 'Replace',
-                },
-                -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
-                -- diagnostics = { disable = { 'missing-fields' } },
-              },
-            },
-          },
         },
         -- This table contains config for all language servers that are *not* installed via Mason.
         -- Structure is identical to the mason table from above.
@@ -311,6 +265,7 @@ return {
       -- for you, so that they are available from within Neovim.
       local ensure_installed = vim.tbl_keys(servers.mason or {})
       vim.list_extend(ensure_installed, {
+        'lua_ls', -- Lua Language server
         'stylua', -- Used to format Lua code
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -321,19 +276,46 @@ return {
       for server, config in pairs(vim.tbl_extend('keep', servers.mason, servers.others)) do
         if not vim.tbl_isempty(config) then
           vim.lsp.config(server, config)
+          vim.lsp.enable(server)
         end
       end
 
-      -- After configuring our language servers, we now enable them
-      require('mason-lspconfig').setup {
-        ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
-        automatic_enable = true, -- automatically run vim.lsp.enable() for all servers that are installed via Mason
-      }
+      -- Special Lua Config, as recommended by neovim help docs
+      vim.lsp.config('lua_ls', {
+        on_init = function(client)
+          if client.workspace_folders then
+            local path = client.workspace_folders[1].name
+            if path ~= vim.fn.stdpath 'config' and (vim.uv.fs_stat(path .. '/.luarc.json') or vim.uv.fs_stat(path .. '/.luarc.jsonc')) then return end
+          end
 
-      -- Manually run vim.lsp.enable for all language servers that are *not* installed via Mason
-      if not vim.tbl_isempty(servers.others) then
-        vim.lsp.enable(vim.tbl_keys(servers.others))
-      end
+          client.config.settings.Lua = vim.tbl_deep_extend('force', client.config.settings.Lua, {
+            runtime = {
+              version = 'LuaJIT',
+              path = { 'lua/?.lua', 'lua/?/init.lua' },
+            },
+            -- Make the server aware of Neovim runtime files
+            workspace = {
+              checkThirdParty = false,
+              -- NOTE: this is a lot slower and will cause issues when working on your own configuration.
+              -- See https://github.com/neovim/nvim-lspconfig/issues/3189
+              library = vim.api.nvim_get_runtime_file('', true),
+              --
+              -- Alternatively:
+              -- library = {
+              --   vim.env.VIMRUNTIME,
+              --   -- Depending on the usage, you might want to add additional paths
+              --   -- here.
+              --   -- '${3rd}/luv/library',
+              --   -- '${3rd}/busted/library',
+              -- },
+            },
+          })
+        end,
+        settings = {
+          Lua = {},
+        },
+      })
+      vim.lsp.enable 'lua_ls'
 
       if vim.loop.os_uname().sysname == 'Darwin' then
         vim.lsp.config('sourcekit', {
