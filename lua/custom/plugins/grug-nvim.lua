@@ -4,9 +4,7 @@ return {
   keys = {
     {
       '<leader>sp',
-      function()
-        require('grug-far').open()
-      end,
+      function() require('grug-far').open() end,
       desc = '[S]earch & Re[p]lace (grug-far)',
     },
   },
