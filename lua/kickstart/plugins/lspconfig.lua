@@ -13,9 +13,6 @@ return {
 
       -- Useful status updates for LSP.
       { 'j-hui/fidget.nvim', opts = {} },
-
-      -- Allows extra capabilities provided by blink.cmp
-      'saghen/blink.cmp',
     },
     config = function()
       -- Brief aside: **What is LSP?**
@@ -155,7 +152,7 @@ return {
         update_in_insert = false,
         severity_sort = true,
         float = { border = 'rounded', source = 'if_many' },
-        underline = { severity = vim.diagnostic.severity.ERROR },
+        underline = { severity = { min = vim.diagnostic.severity.WARN } },
         signs = {
           text = {
             [vim.diagnostic.severity.ERROR] = '󰅚 ',
@@ -172,18 +169,6 @@ return {
         -- Auto open the float, so you can easily read the errors when jumping with `[d` and `]d`
         jump = { float = true },
       }
-
-      -- LSP servers and clients are able to communicate to each other what features they support.
-      --  By default, Neovim doesn't support everything that is in the LSP specification.
-      --  When you add blink.cmp, luasnip, etc. Neovim now has *more* capabilities.
-      --  So, we create new capabilities with blink.cmp, and then broadcast that to the servers.
-      -- NOTE: The following line is now commented as blink.cmp extends capabilites by default from
-      -- its internal code:
-      -- https://github.com/Saghen/blink.cmp/blob/102db2f5996a46818661845cf283484870b60450/plugin/blink-cmp.lua
-      -- It has been left here as a comment for educational purposes (as the predecessor completion
-      -- plugin required this explicit step).
-      --
-      -- local capabilities = require('blink.cmp').get_lsp_capabilities()
 
       -- Dynamically determine the python interperter to use for hacky venv support
       local python = vim.loop.os_uname().sysname == 'Darwin' and 'python3' or 'python'
